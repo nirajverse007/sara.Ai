@@ -150,14 +150,32 @@
             function speak(text) {
                 if (!state.isVoiceEnabled) return;
                 window.speechSynthesis.cancel();
+                
+                // Clean text from symbols
                 const cleanText = text.replace(/[*#_`]/g, '');
                 const utterance = new SpeechSynthesisUtterance(cleanText);
+                
+                // Fetch all voices
                 const voices = window.speechSynthesis.getVoices();
-                const femaleVoice = voices.find(v => (v.lang.includes('hi') || v.lang.includes('en')) && (v.name.includes('Female') || v.name.includes('Google')));
+                
+                // Try to find a high-quality female voice
+                const femaleVoice = voices.find(v => 
+                    (v.lang.includes('hi') || v.lang.includes('en')) && 
+                    (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Female'))
+                );
+                
                 if (femaleVoice) utterance.voice = femaleVoice;
-                utterance.pitch = 1.1; utterance.rate = 1.0;
+                
+                // Human-like settings
+                utterance.pitch = 1.2; // Slightly higher for a meethi/feminine voice
+                utterance.rate = 0.8;  // Slowed down for natural human speed
+                utterance.volume = 1.0;
+
                 window.speechSynthesis.speak(utterance);
             }
+
+            // Ensure voices are loaded for some browsers
+            window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
 
             function init() {
                 loadState();
@@ -231,7 +249,6 @@
                 if (!state.currentChatId) createNewChat();
                 const chat = state.chats.find(c => c.id === state.currentChatId);
 
-                // Unlock Partner Mode
                 if (text === PWD) {
                     state.isAuthenticated = true;
                     const authText = "Pahchan liya Niraj! ❤️ Partner Mode active ho gaya hai. Ab bolo kaise help karun? 🥰";
@@ -252,7 +269,6 @@
                 chat.messages.push(aiMsg);
                 renderMessages();
 
-                // Dynamic Identity: Even in helper mode, she knows she is talking to Niraj
                 const identity = state.isAuthenticated 
                     ? state.settings.systemPrompt 
                     : `User is Niraj (your creator/boss). Speak professionally but acknowledge him. ${state.settings.helperPrompt}`;
