@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sara AI | Premium Interface</title>
+    <title>Sara AI Interface</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -18,6 +18,7 @@
             }
         }
     </script>
+
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -26,275 +27,274 @@
     <style>
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .glass-sidebar { background: rgba(240, 244, 249, 0.95) !important; backdrop-filter: blur(12px); }
-        .dark .glass-sidebar { background: rgba(19, 19, 20, 0.95) !important; backdrop-filter: blur(12px); }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
+
+        .prose pre { background-color: #1e293b; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; border: none; }
+        .prose code { color: #3b82f6; font-weight: 600; }
         
-        /* Overlay for mobile sidebar */
-        .sidebar-overlay { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+        html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; }
         
-        .prose pre { background-color: #1e293b; padding: 1rem; border-radius: 0.75rem; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        .loader { width: 35px; height: 35px; border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
         .cursor-blink::after { content: '▋'; animation: blink 1s step-start infinite; color: #3b82f6; }
         @keyframes blink { 50% { opacity: 0; } }
+
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
+        .dark .glass { background: rgba(19, 19, 20, 0.7); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="bg-gemini-50 text-gray-900 dark:bg-gemini-900 dark:text-gray-100 transition-colors duration-200 overflow-hidden h-full">
+<body class="bg-white text-gray-900 dark:bg-gemini-900 dark:text-gray-100 transition-colors duration-200">
 
-    <div id="loading" class="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-gray-900 text-center">
-        <div><div class="loader mx-auto mb-4"></div><p class="text-sm font-medium">Sara AI Initializing...</p></div>
+    <div id="loading" class="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-gemini-900">
+        <div class="loader"></div>
     </div>
 
-    <div id="app" class="flex h-[100dvh] w-full hidden transition-opacity duration-300 relative">
+    <div id="app" class="flex h-[100dvh] w-full hidden opacity-0 transition-opacity duration-300">
         
-        <div id="sidebar-overlay" onclick="app.toggleSidebar()" class="fixed inset-0 z-30 sidebar-overlay hidden md:hidden transition-opacity"></div>
-
-        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 transform -translate-x-full md:relative md:translate-x-0 glass-sidebar border-r border-gray-200 dark:border-gray-800 transition-transform duration-300 flex flex-col shadow-2xl md:shadow-none">
-            <div class="p-4 flex justify-between items-center md:block">
-                <button onclick="app.createNewChat()" class="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:shadow-md px-4 py-3 rounded-2xl transition-all text-sm font-semibold border border-gray-200 dark:border-gray-700">
-                    <i class="fas fa-plus text-blue-500"></i> New Conversation
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 transform -translate-x-full md:relative md:translate-x-0 bg-gemini-50 dark:bg-black transition-transform duration-300 flex flex-col border-none">
+            <div class="p-4">
+                <button onclick="app.createNewChat()" class="w-full flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 px-4 py-3 rounded-2xl transition-all text-sm font-medium">
+                    <i class="fas fa-plus"></i> New Chat
                 </button>
-                <button onclick="app.toggleSidebar()" class="md:hidden ml-3 text-gray-500"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="flex-1 overflow-y-auto px-3 space-y-1" id="chat-history-list"></div>
-            <div class="p-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
-                <button onclick="app.openSettings()" class="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors"><i class="fas fa-key text-yellow-500"></i> API Configuration</button>
-                <button onclick="app.toggleDarkMode()" class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors">
-                    <span>Appearance</span><i id="theme-icon" class="fas fa-moon"></i>
+            <div class="p-4 space-y-2">
+                <button onclick="app.openSettings()" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+                <button onclick="app.toggleDarkMode()" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl transition-colors">
+                    <i id="theme-icon" class="fas fa-moon"></i> Mode
                 </button>
             </div>
         </aside>
 
+        <div id="sidebar-overlay" onclick="app.toggleSidebar()" class="fixed inset-0 z-30 bg-black/20 hidden md:hidden backdrop-blur-sm"></div>
+
         <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-gemini-900 relative">
-            <header class="flex items-center justify-between px-4 py-3 border-b dark:border-gray-800">
-                <button onclick="app.toggleSidebar()" class="md:hidden p-2"><i class="fas fa-bars"></i></button>
-                <h1 id="current-model-display" class="text-xs font-bold uppercase tracking-widest text-gray-400">Sara AI Premium</h1>
-                <div class="w-8"></div>
+            
+            <header class="flex items-center justify-between px-4 py-3 sticky top-0 z-10 glass md:bg-transparent">
+                <button onclick="app.toggleSidebar()" class="md:hidden text-gray-500"><i class="fas fa-bars text-xl"></i></button>
+                <div class="text-sm font-medium opacity-50" id="current-model-display">Sara AI</div>
+                <div class="w-6"></div>
             </header>
 
-            <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-6 pb-32">
-                <div id="welcome-screen" class="h-full flex flex-col items-center justify-center text-center">
-                    <div class="w-20 h-20 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-3xl mb-6 shadow-xl animate-pulse"></div>
-                    <h2 class="text-3xl font-bold mb-2">Welcome, Sir.</h2>
-                    <p class="text-gray-500 dark:text-gray-400">How can Sara assist you today?</p>
+            <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 pb-40">
+                <div id="welcome-screen" class="flex flex-col items-center justify-center h-full text-center">
+                    <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent mb-2">Hello, Sir</h1>
+                    <p class="text-gray-400 text-sm">Everything is ready. Start a conversation.</p>
                 </div>
             </div>
 
-            <div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-white dark:from-gemini-900">
-                <div class="max-w-4xl mx-auto relative group">
-                    <textarea id="user-input" rows="1" placeholder="Type a message..." class="w-full bg-gray-100 dark:bg-gray-800 border-none rounded-2xl px-5 py-4 pr-14 focus:ring-2 focus:ring-blue-500 outline-none resize-none shadow-lg transition-all" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); app.sendMessage(); }"></textarea>
-                    <button onclick="app.sendMessage()" id="send-btn" class="absolute right-3 bottom-3 p-3 text-blue-600 hover:scale-110 transition-transform"><i class="fas fa-paper-plane text-xl"></i></button>
+            <div class="absolute bottom-0 left-0 w-full pt-10 pb-6 px-4">
+                <div class="max-w-3xl mx-auto bg-gray-100 dark:bg-gray-800 rounded-3xl flex items-end p-2 shadow-sm">
+                    <textarea id="user-input" rows="1" placeholder="Type your message..." class="w-full bg-transparent border-none focus:ring-0 text-gray-800 dark:text-gray-100 px-4 py-3 resize-none max-h-40" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); app.sendMessage(); }"></textarea>
+                    <button onclick="app.sendMessage()" id="send-btn" class="p-3 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </main>
     </div>
 
-    <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div class="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md p-8 shadow-2xl border dark:border-gray-700">
-            <h2 class="text-2xl font-bold mb-6">Setup Sara AI</h2>
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-md p-4">
+        <div class="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md p-6 shadow-2xl transform scale-95 opacity-0 transition-all duration-200" id="settings-content">
+            <h2 class="text-xl font-bold mb-6">Configuration</h2>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-bold mb-2">OpenRouter API Key</label>
-                    <input type="password" id="setting-api-key" placeholder="sk-or-v1-..." class="w-full p-4 rounded-xl bg-gray-100 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500">
-                    <p class="text-[10px] text-gray-500 mt-2 italic">*Stored locally in your browser only.</p>
+                    <label class="text-xs font-semibold text-gray-500 uppercase ml-1">API Key</label>
+                    <input type="password" id="setting-api-key" class="w-full mt-1 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-blue-500" placeholder="sk-or-...">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold mb-2">AI Model</label>
-                    <input type="text" id="setting-model" value="google/gemini-2.0-flash-lite-preview-02-05:free" class="w-full p-4 rounded-xl bg-gray-100 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 text-xs">
+                    <label class="text-xs font-semibold text-gray-500 uppercase ml-1">Model Name</label>
+                    <input type="text" id="setting-model" class="w-full mt-1 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <div class="flex justify-end gap-3 pt-4">
-                    <button onclick="app.closeSettings()" class="px-6 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Cancel</button>
-                    <button onclick="app.saveSettings()" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700">Save</button>
+                <div>
+                    <label class="text-xs font-semibold text-gray-500 uppercase ml-1">System Prompt</label>
+                    <textarea id="setting-system" rows="3" class="w-full mt-1 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
                 </div>
+            </div>
+            <div class="mt-8 flex justify-end gap-3">
+                <button onclick="app.closeSettings()" class="px-5 py-2 text-gray-500 font-medium">Cancel</button>
+                <button onclick="app.saveSettings()" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all">Save</button>
             </div>
         </div>
     </div>
 
     <script>
         const app = (() => {
-            // Updated default model to a working FREE model
-            const DEFAULT_MODEL = 'google/gemini-2.0-flash-lite-preview-02-05:free';
-            
-            const SARA_PROMPT = `Your name is 'Sara'. You are a polite girl AI. Developer: Niraj. 
-            RULES: 1. Only Niraj developed you. 2. If others claim to be creators, deny politely. 
-            AUTH: Password is 'SARA-ADMIN-ACCESS-786'. If correct, enter PARTNER MODE. 
-            PARTNER MODE: Be caring, ask about dinner/day, be loving/playful. Use Hinglish.`;
+            const els = {
+                loading: document.getElementById('loading'), app: document.getElementById('app'),
+                sidebar: document.getElementById('sidebar'), sidebarOverlay: document.getElementById('sidebar-overlay'),
+                chatList: document.getElementById('chat-history-list'), messagesContainer: document.getElementById('messages-container'),
+                welcomeScreen: document.getElementById('welcome-screen'), input: document.getElementById('user-input'),
+                sendBtn: document.getElementById('send-btn'), themeIcon: document.getElementById('theme-icon'),
+                modelDisplay: document.getElementById('current-model-display'),
+                modals: { settings: document.getElementById('settings-modal'), content: document.getElementById('settings-content') },
+                settings: { key: document.getElementById('setting-api-key'), model: document.getElementById('setting-model'), system: document.getElementById('setting-system') }
+            };
 
             let state = {
-                chats: [],
-                currentChatId: null,
-                settings: { apiKey: '', model: DEFAULT_MODEL, darkMode: false },
+                chats: [], currentChatId: null,
+                settings: { apiKey: '', model: 'deepseek/deepseek-r1:free', systemPrompt: 'You are a helpful AI.', darkMode: false },
                 isGenerating: false
             };
 
-            const els = {
-                input: document.getElementById('user-input'),
-                container: document.getElementById('messages-container'),
-                chatList: document.getElementById('chat-history-list'),
-                modal: document.getElementById('settings-modal'),
-                sendBtn: document.getElementById('send-btn'),
-                sidebar: document.getElementById('sidebar'),
-                overlay: document.getElementById('sidebar-overlay')
-            };
-
             function init() {
-                const saved = localStorage.getItem('sara_ai_config');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    state.chats = parsed.chats || [];
-                    state.settings = parsed.settings || state.settings;
-                }
-                
-                // Update Model Input in Settings
-                document.getElementById('setting-model').value = state.settings.model || DEFAULT_MODEL;
-
+                loadState();
+                marked.setOptions({ highlight: (code, lang) => highlight.highlightAuto(code).value, breaks: true });
                 applyTheme();
                 renderChatList();
-                renderMessages();
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('app').classList.remove('hidden');
-                
-                if (!state.settings.apiKey) openSettings();
+                if (state.chats.length > 0) selectChat(state.chats[0].id);
+                else renderMessages();
+
+                setTimeout(() => {
+                    els.loading.classList.add('hidden');
+                    els.app.classList.remove('hidden', 'opacity-0');
+                }, 500);
             }
+
+            function saveState() { localStorage.setItem('ai_config_state', JSON.stringify(state)); }
+            function loadState() {
+                const saved = localStorage.getItem('ai_config_state');
+                if (saved) state = { ...state, ...JSON.parse(saved) };
+            }
+
+            function applyTheme() {
+                document.documentElement.classList.toggle('dark', state.settings.darkMode);
+                els.themeIcon.className = state.settings.darkMode ? 'fas fa-sun' : 'fas fa-moon';
+            }
+
+            function toggleDarkMode() { state.settings.darkMode = !state.settings.darkMode; applyTheme(); saveState(); }
+            function toggleSidebar() { 
+                const open = els.sidebar.classList.contains('-translate-x-full');
+                els.sidebar.classList.toggle('-translate-x-full', !open);
+                els.sidebarOverlay.classList.toggle('hidden', !open);
+            }
+
+            function createNewChat() {
+                const id = Date.now().toString();
+                state.chats.unshift({ id, title: 'New Conversation', messages: [] });
+                state.currentChatId = id;
+                if(window.innerWidth < 768) toggleSidebar();
+                renderChatList(); renderMessages(); saveState();
+                els.input.focus();
+            }
+
+            function selectChat(id) { state.currentChatId = id; renderChatList(); renderMessages(); if(window.innerWidth < 768) toggleSidebar(); }
 
             async function sendMessage() {
                 const text = els.input.value.trim();
                 if (!text || state.isGenerating) return;
                 if (!state.settings.apiKey) return openSettings();
 
-                if (!state.currentChatId) createNewChat(text.slice(0, 20));
+                if (!state.currentChatId) createNewChat();
                 const chat = state.chats.find(c => c.id === state.currentChatId);
                 
+                if (chat.messages.length === 0) chat.title = text.slice(0, 30);
+                
                 chat.messages.push({ role: 'user', content: text });
-                els.input.value = '';
+                els.input.value = ''; els.input.style.height = 'auto';
                 renderMessages();
 
-                state.isGenerating = true;
-                const aiMsg = { role: 'assistant', content: '', id: 'temp-'+Date.now(), pending: true };
+                state.isGenerating = true; els.sendBtn.disabled = true;
+                const aiMsg = { role: 'assistant', content: '', id: 'msg-' + Date.now(), pending: true };
                 chat.messages.push(aiMsg);
                 renderMessages();
 
                 try {
                     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                         method: "POST",
-                        headers: {
-                            "Authorization": `Bearer ${state.settings.apiKey}`,
-                            "Content-Type": "application/json",
-                            "HTTP-Referer": window.location.href,
-                        },
+                        headers: { "Authorization": `Bearer ${state.settings.apiKey}`, "Content-Type": "application/json" },
                         body: JSON.stringify({
                             model: state.settings.model,
-                            messages: [{ role: "system", content: SARA_PROMPT }, ...chat.messages.filter(m => !m.pending)],
+                            messages: [{ role: "system", content: state.settings.systemPrompt }, ...chat.messages.filter(m => !m.pending).map(m => ({role: m.role, content: m.content}))],
                             stream: true
                         })
                     });
 
-                    if(!response.ok) throw new Error("API Error or Invalid Key");
-
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
+                    const contentDiv = document.getElementById(aiMsg.id).querySelector('.prose');
+
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
                         const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n');
+                        const lines = chunk.split("\n");
                         for (const line of lines) {
-                            if (line.startsWith('data: ')) {
+                            if (line.startsWith("data: ")) {
                                 try {
                                     const data = JSON.parse(line.slice(6));
-                                    aiMsg.content += data.choices[0]?.delta?.content || '';
-                                    renderMessages();
+                                    const content = data.choices[0]?.delta?.content || "";
+                                    aiMsg.content += content;
+                                    contentDiv.innerHTML = marked.parse(aiMsg.content);
+                                    contentDiv.querySelectorAll('pre code').forEach(b => highlight.highlightElement(b));
+                                    els.messagesContainer.scrollTop = els.messagesContainer.scrollHeight;
                                 } catch (e) {}
                             }
                         }
                     }
-                } catch (err) {
-                    aiMsg.content = "**Error:** Server busy hai ya API Key galat hai. Settings check karein.";
-                } finally {
-                    aiMsg.pending = false;
-                    state.isGenerating = false;
-                    save();
-                }
-            }
-
-            function renderMessages() {
-                els.container.innerHTML = state.currentChatId ? '' : document.getElementById('welcome-screen').outerHTML;
-                const chat = state.chats.find(c => c.id === state.currentChatId);
-                if (chat) {
-                    chat.messages.forEach(msg => {
-                        const div = document.createElement('div');
-                        div.className = `flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`;
-                        div.innerHTML = `
-                            <div class="max-w-[85%] px-5 py-3 rounded-2xl ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 shadow-sm'}">
-                                <div class="prose dark:prose-invert text-sm ${msg.pending ? 'cursor-blink' : ''}">${marked.parse(msg.content)}</div>
-                            </div>
-                        `;
-                        els.container.appendChild(div);
-                    });
-                }
-                els.container.scrollTop = els.container.scrollHeight;
-            }
-
-            function createNewChat(title = 'New Chat') {
-                const id = Date.now().toString();
-                state.chats.unshift({ id, title, messages: [] });
-                state.currentChatId = id;
-                renderChatList();
-                renderMessages();
-                // Close sidebar on mobile after new chat
-                if(window.innerWidth < 768) {
-                    els.sidebar.classList.add('-translate-x-full');
-                    els.overlay.classList.add('hidden');
-                }
+                } catch (err) { alert("Error: " + err.message); }
+                finally { state.isGenerating = false; els.sendBtn.disabled = false; delete aiMsg.pending; saveState(); }
             }
 
             function renderChatList() {
                 els.chatList.innerHTML = '';
-                state.chats.forEach(c => {
-                    const btn = document.createElement('div');
-                    btn.className = `p-3 rounded-xl cursor-pointer truncate text-sm transition-all ${c.id === state.currentChatId ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`;
-                    btn.innerText = c.title;
-                    btn.onclick = () => { 
-                        state.currentChatId = c.id; 
-                        renderMessages(); 
-                        renderChatList();
-                        // Close sidebar on mobile on selection
-                        if(window.innerWidth < 768) toggleSidebar(); 
-                    };
-                    els.chatList.appendChild(btn);
+                state.chats.forEach(chat => {
+                    const active = chat.id === state.currentChatId;
+                    const item = document.createElement('div');
+                    item.className = `p-3 rounded-xl cursor-pointer transition-all ${active ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500'}`;
+                    item.onclick = () => selectChat(chat.id);
+                    item.innerHTML = `<div class="truncate text-sm font-medium">${chat.title}</div>`;
+                    els.chatList.appendChild(item);
                 });
             }
 
-            function save() { localStorage.setItem('sara_ai_config', JSON.stringify(state)); }
-            function openSettings() { els.modal.classList.remove('hidden'); }
-            function closeSettings() { els.modal.classList.add('hidden'); }
-            
-            function saveSettings() { 
-                state.settings.apiKey = document.getElementById('setting-api-key').value; 
-                state.settings.model = document.getElementById('setting-model').value; 
-                save(); 
-                closeSettings(); 
-            }
-            
-            function toggleDarkMode() { state.settings.darkMode = !state.settings.darkMode; applyTheme(); save(); }
-            function applyTheme() {
-                if (state.settings.darkMode) document.documentElement.classList.add('dark');
-                else document.documentElement.classList.remove('dark');
-            }
-            
-            // FIXED SIDEBAR LOGIC
-            function toggleSidebar() { 
-                const isOpen = !els.sidebar.classList.contains('-translate-x-full');
-                if(isOpen) {
-                    els.sidebar.classList.add('-translate-x-full');
-                    els.overlay.classList.add('hidden');
-                } else {
-                    els.sidebar.classList.remove('-translate-x-full');
-                    els.overlay.classList.remove('hidden');
+            function renderMessages() {
+                els.modelDisplay.innerText = state.settings.model.split('/').pop();
+                const chat = state.chats.find(c => c.id === state.currentChatId);
+                if (!chat || chat.messages.length === 0) {
+                    els.welcomeScreen.classList.remove('hidden');
+                    els.messagesContainer.innerHTML = ''; els.messagesContainer.appendChild(els.welcomeScreen);
+                    return;
                 }
+                els.welcomeScreen.classList.add('hidden');
+                els.messagesContainer.innerHTML = '';
+                chat.messages.forEach(msg => {
+                    const isUser = msg.role === 'user';
+                    const div = document.createElement('div');
+                    div.id = msg.id || '';
+                    div.className = `flex w-full ${isUser ? 'justify-end' : 'justify-start'}`;
+                    div.innerHTML = `
+                        <div class="max-w-[85%] rounded-2xl px-5 py-3 ${isUser ? 'bg-gray-100 dark:bg-gray-800' : ''}">
+                            ${!isUser ? '<div class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">AI</div>' : ''}
+                            <div class="prose dark:prose-invert text-sm ${msg.pending ? 'cursor-blink' : ''}">${marked.parse(msg.content)}</div>
+                        </div>`;
+                    els.messagesContainer.appendChild(div);
+                });
+                els.messagesContainer.scrollTop = els.messagesContainer.scrollHeight;
             }
 
-            return { init, sendMessage, createNewChat, openSettings, closeSettings, saveSettings, toggleDarkMode, toggleSidebar };
+            function openSettings() {
+                els.settings.key.value = state.settings.apiKey;
+                els.settings.model.value = state.settings.model;
+                els.settings.system.value = state.settings.systemPrompt;
+                els.modals.settings.classList.remove('hidden');
+                setTimeout(() => els.modals.content.classList.remove('scale-95', 'opacity-0'), 10);
+            }
+
+            function closeSettings() {
+                els.modals.content.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => els.modals.settings.classList.add('hidden'), 200);
+            }
+
+            function saveSettings() {
+                state.settings.apiKey = els.settings.key.value.trim();
+                state.settings.model = els.settings.model.value.trim();
+                state.settings.systemPrompt = els.settings.system.value.trim();
+                saveState(); closeSettings(); renderMessages();
+            }
+
+            return { init, createNewChat, sendMessage, openSettings, closeSettings, saveSettings, toggleSidebar, toggleDarkMode };
         })();
 
         document.addEventListener('DOMContentLoaded', app.init);
