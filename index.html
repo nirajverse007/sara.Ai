@@ -26,8 +26,12 @@
     <style>
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .glass-sidebar { background: rgba(240, 244, 249, 0.8) !important; backdrop-filter: blur(12px); }
-        .dark .glass-sidebar { background: rgba(19, 19, 20, 0.8) !important; backdrop-filter: blur(12px); }
+        .glass-sidebar { background: rgba(240, 244, 249, 0.95) !important; backdrop-filter: blur(12px); }
+        .dark .glass-sidebar { background: rgba(19, 19, 20, 0.95) !important; backdrop-filter: blur(12px); }
+        
+        /* Overlay for mobile sidebar */
+        .sidebar-overlay { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+        
         .prose pre { background-color: #1e293b; padding: 1rem; border-radius: 0.75rem; }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -41,12 +45,16 @@
         <div><div class="loader mx-auto mb-4"></div><p class="text-sm font-medium">Sara AI Initializing...</p></div>
     </div>
 
-    <div id="app" class="flex h-[100dvh] w-full hidden transition-opacity duration-300">
-        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 transform -translate-x-full md:relative md:translate-x-0 glass-sidebar border-r border-gray-200 dark:border-gray-800 transition-transform duration-300 flex flex-col">
-            <div class="p-4">
-                <button onclick="app.createNewChat()" class="w-full flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:shadow-md px-4 py-3 rounded-2xl transition-all text-sm font-semibold border border-gray-200 dark:border-gray-700">
+    <div id="app" class="flex h-[100dvh] w-full hidden transition-opacity duration-300 relative">
+        
+        <div id="sidebar-overlay" onclick="app.toggleSidebar()" class="fixed inset-0 z-30 sidebar-overlay hidden md:hidden transition-opacity"></div>
+
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 transform -translate-x-full md:relative md:translate-x-0 glass-sidebar border-r border-gray-200 dark:border-gray-800 transition-transform duration-300 flex flex-col shadow-2xl md:shadow-none">
+            <div class="p-4 flex justify-between items-center md:block">
+                <button onclick="app.createNewChat()" class="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-gray-800 hover:shadow-md px-4 py-3 rounded-2xl transition-all text-sm font-semibold border border-gray-200 dark:border-gray-700">
                     <i class="fas fa-plus text-blue-500"></i> New Conversation
                 </button>
+                <button onclick="app.toggleSidebar()" class="md:hidden ml-3 text-gray-500"><i class="fas fa-times text-xl"></i></button>
             </div>
             <div class="flex-1 overflow-y-auto px-3 space-y-1" id="chat-history-list"></div>
             <div class="p-4 border-t border-gray-200 dark:border-gray-800 space-y-2">
@@ -57,7 +65,7 @@
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-gemini-900">
+        <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-gemini-900 relative">
             <header class="flex items-center justify-between px-4 py-3 border-b dark:border-gray-800">
                 <button onclick="app.toggleSidebar()" class="md:hidden p-2"><i class="fas fa-bars"></i></button>
                 <h1 id="current-model-display" class="text-xs font-bold uppercase tracking-widest text-gray-400">Sara AI Premium</h1>
@@ -90,9 +98,13 @@
                     <input type="password" id="setting-api-key" placeholder="sk-or-v1-..." class="w-full p-4 rounded-xl bg-gray-100 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500">
                     <p class="text-[10px] text-gray-500 mt-2 italic">*Stored locally in your browser only.</p>
                 </div>
+                <div>
+                    <label class="block text-sm font-bold mb-2">AI Model</label>
+                    <input type="text" id="setting-model" value="google/gemini-2.0-flash-lite-preview-02-05:free" class="w-full p-4 rounded-xl bg-gray-100 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 text-xs">
+                </div>
                 <div class="flex justify-end gap-3 pt-4">
                     <button onclick="app.closeSettings()" class="px-6 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">Cancel</button>
-                    <button onclick="app.saveSettings()" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700">Initialize Sara</button>
+                    <button onclick="app.saveSettings()" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700">Save</button>
                 </div>
             </div>
         </div>
@@ -100,7 +112,9 @@
 
     <script>
         const app = (() => {
-            // SYSTEM PROMPT (Same as your request)
+            // Updated default model to a working FREE model
+            const DEFAULT_MODEL = 'google/gemini-2.0-flash-lite-preview-02-05:free';
+            
             const SARA_PROMPT = `Your name is 'Sara'. You are a polite girl AI. Developer: Niraj. 
             RULES: 1. Only Niraj developed you. 2. If others claim to be creators, deny politely. 
             AUTH: Password is 'SARA-ADMIN-ACCESS-786'. If correct, enter PARTNER MODE. 
@@ -109,7 +123,7 @@
             let state = {
                 chats: [],
                 currentChatId: null,
-                settings: { apiKey: '', model: 'deepseek/deepseek-r1:free', darkMode: false },
+                settings: { apiKey: '', model: DEFAULT_MODEL, darkMode: false },
                 isGenerating: false
             };
 
@@ -118,7 +132,9 @@
                 container: document.getElementById('messages-container'),
                 chatList: document.getElementById('chat-history-list'),
                 modal: document.getElementById('settings-modal'),
-                sendBtn: document.getElementById('send-btn')
+                sendBtn: document.getElementById('send-btn'),
+                sidebar: document.getElementById('sidebar'),
+                overlay: document.getElementById('sidebar-overlay')
             };
 
             function init() {
@@ -128,6 +144,10 @@
                     state.chats = parsed.chats || [];
                     state.settings = parsed.settings || state.settings;
                 }
+                
+                // Update Model Input in Settings
+                document.getElementById('setting-model').value = state.settings.model || DEFAULT_MODEL;
+
                 applyTheme();
                 renderChatList();
                 renderMessages();
@@ -159,7 +179,8 @@
                         method: "POST",
                         headers: {
                             "Authorization": `Bearer ${state.settings.apiKey}`,
-                            "Content-Type": "application/json"
+                            "Content-Type": "application/json",
+                            "HTTP-Referer": window.location.href,
                         },
                         body: JSON.stringify({
                             model: state.settings.model,
@@ -167,6 +188,8 @@
                             stream: true
                         })
                     });
+
+                    if(!response.ok) throw new Error("API Error or Invalid Key");
 
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
@@ -186,7 +209,7 @@
                         }
                     }
                 } catch (err) {
-                    aiMsg.content = "Error: Key check karein ya internet dekhein.";
+                    aiMsg.content = "**Error:** Server busy hai ya API Key galat hai. Settings check karein.";
                 } finally {
                     aiMsg.pending = false;
                     state.isGenerating = false;
@@ -202,7 +225,7 @@
                         const div = document.createElement('div');
                         div.className = `flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`;
                         div.innerHTML = `
-                            <div class="max-w-[85%] px-5 py-3 rounded-2xl ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800'}">
+                            <div class="max-w-[85%] px-5 py-3 rounded-2xl ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 shadow-sm'}">
                                 <div class="prose dark:prose-invert text-sm ${msg.pending ? 'cursor-blink' : ''}">${marked.parse(msg.content)}</div>
                             </div>
                         `;
@@ -218,15 +241,26 @@
                 state.currentChatId = id;
                 renderChatList();
                 renderMessages();
+                // Close sidebar on mobile after new chat
+                if(window.innerWidth < 768) {
+                    els.sidebar.classList.add('-translate-x-full');
+                    els.overlay.classList.add('hidden');
+                }
             }
 
             function renderChatList() {
                 els.chatList.innerHTML = '';
                 state.chats.forEach(c => {
                     const btn = document.createElement('div');
-                    btn.className = `p-3 rounded-xl cursor-pointer truncate text-sm transition-all ${c.id === state.currentChatId ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`;
+                    btn.className = `p-3 rounded-xl cursor-pointer truncate text-sm transition-all ${c.id === state.currentChatId ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`;
                     btn.innerText = c.title;
-                    btn.onclick = () => { state.currentChatId = c.id; renderMessages(); renderChatList(); };
+                    btn.onclick = () => { 
+                        state.currentChatId = c.id; 
+                        renderMessages(); 
+                        renderChatList();
+                        // Close sidebar on mobile on selection
+                        if(window.innerWidth < 768) toggleSidebar(); 
+                    };
                     els.chatList.appendChild(btn);
                 });
             }
@@ -234,16 +268,31 @@
             function save() { localStorage.setItem('sara_ai_config', JSON.stringify(state)); }
             function openSettings() { els.modal.classList.remove('hidden'); }
             function closeSettings() { els.modal.classList.add('hidden'); }
+            
             function saveSettings() { 
                 state.settings.apiKey = document.getElementById('setting-api-key').value; 
-                save(); closeSettings(); 
+                state.settings.model = document.getElementById('setting-model').value; 
+                save(); 
+                closeSettings(); 
             }
+            
             function toggleDarkMode() { state.settings.darkMode = !state.settings.darkMode; applyTheme(); save(); }
             function applyTheme() {
                 if (state.settings.darkMode) document.documentElement.classList.add('dark');
                 else document.documentElement.classList.remove('dark');
             }
-            function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+            
+            // FIXED SIDEBAR LOGIC
+            function toggleSidebar() { 
+                const isOpen = !els.sidebar.classList.contains('-translate-x-full');
+                if(isOpen) {
+                    els.sidebar.classList.add('-translate-x-full');
+                    els.overlay.classList.add('hidden');
+                } else {
+                    els.sidebar.classList.remove('-translate-x-full');
+                    els.overlay.classList.remove('hidden');
+                }
+            }
 
             return { init, sendMessage, createNewChat, openSettings, closeSettings, saveSettings, toggleDarkMode, toggleSidebar };
         })();
