@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sara AI - Clean Version</title>
+    <title>Sara AI - Niraj Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -20,6 +20,11 @@
         .message-appear { animation: fadeInUp 0.3s ease-out; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .prose p { margin-bottom: 0.5rem; }
+        .welcome-gradient {
+            background: linear-gradient(to right, #3b82f6, #2dd4bf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 transition-colors duration-300">
@@ -55,7 +60,12 @@
                 <div class="w-8"></div>
             </header>
 
-            <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 pb-32"></div>
+            <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 pb-32 flex flex-col">
+                <div id="welcome-msg" class="flex-1 flex flex-col items-center justify-center text-center space-y-2">
+                    <h2 class="text-5xl md:text-7xl font-black welcome-gradient">Hello Niraj Sir</h2>
+                    <p class="text-gray-400 dark:text-slate-500 font-medium">How can Sara help you today?</p>
+                </div>
+            </div>
 
             <div class="absolute bottom-0 w-full p-4 md:p-6 bg-gradient-to-t from-white dark:from-slate-950 via-white dark:via-slate-950 to-transparent">
                 <div class="max-w-3xl mx-auto flex items-end gap-2 bg-gray-100 dark:bg-slate-900 p-2 rounded-2xl border dark:border-slate-800 shadow-sm">
@@ -90,13 +100,14 @@
                 loading: document.getElementById('loading'), app: document.getElementById('app'),
                 sidebar: document.getElementById('sidebar'), overlay: document.getElementById('sidebar-overlay'),
                 chatList: document.getElementById('chat-history-list'), messagesContainer: document.getElementById('messages-container'),
+                welcomeMsg: document.getElementById('welcome-msg'),
                 input: document.getElementById('user-input'), modeBadge: document.getElementById('mode-badge'),
                 settings: { key: document.getElementById('set-key'), model: document.getElementById('set-model'), helper: document.getElementById('set-helper'), partner: document.getElementById('set-partner') }
             };
 
             let state = {
                 chats: [], currentChatId: null,
-                settings: { apiKey: '', model: 'google/gemini-2.0-flash-lite-preview-02-05:free', helperPrompt: '', partnerPrompt: '' }, // Blank Defaults
+                settings: { apiKey: '', model: 'google/gemini-2.0-flash-lite-preview-02-05:free', helperPrompt: '', partnerPrompt: '' },
                 isAuthenticated: false, isVoiceEnabled: true, isDarkMode: false
             };
 
@@ -107,14 +118,14 @@
                 chunks.forEach(chunk => {
                     const u = new SpeechSynthesisUtterance(chunk);
                     const voices = window.speechSynthesis.getVoices();
-                    u.voice = voices.find(v => v.lang.includes('hi') || v.name.includes('Google') || v.name.includes('Natural')) || voices[0];
-                    u.rate = 0.85; u.pitch = 1.1; 
+                    u.voice = voices.find(v => (v.lang.includes('hi') || v.lang.includes('en')) && (v.name.includes('Google') || v.name.includes('Natural'))) || voices[0];
+                    u.rate = 0.9; u.pitch = 1.1; 
                     window.speechSynthesis.speak(u);
                 });
             }
 
             function init() {
-                const saved = localStorage.getItem('sara_clean_state');
+                const saved = localStorage.getItem('sara_v4_state');
                 if (saved) {
                     const p = JSON.parse(saved);
                     state.settings = { ...state.settings, ...p.settings };
@@ -127,7 +138,7 @@
                 els.input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); app.sendMessage(); } });
                 renderChatList();
                 if(state.chats.length > 0) selectChat(state.chats[0].id);
-                else createNewChat();
+                else updateWelcomeVisibility(true);
             }
 
             async function sendMessage() {
@@ -138,13 +149,15 @@
                     state.isAuthenticated = true;
                     updateModeUI(true);
                     els.input.value = '';
-                    const msg = "Partner Mode Activated ❤️";
-                    speak(msg); alert(msg); return;
+                    speak("Partner mode activated."); return;
                 }
 
                 if (!state.currentChatId) createNewChat();
                 const chat = state.chats.find(c => c.id === state.currentChatId);
-                if(chat.messages.length === 0) chat.title = text.substring(0, 20) + "...";
+                
+                updateWelcomeVisibility(false);
+
+                if(chat.messages.length === 0) chat.title = text.substring(0, 25);
                 
                 chat.messages.push({ role: 'user', content: text });
                 els.input.value = ''; els.input.style.height = 'auto';
@@ -154,27 +167,26 @@
                 chat.messages.push(aiMsg);
                 renderMessages();
 
-                // Logic: Select Prompt based on Password (Authentication)
                 const systemInstruction = state.isAuthenticated ? state.settings.partnerPrompt : state.settings.helperPrompt;
 
                 try {
                     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                         method: "POST",
-                        headers: { "Authorization": `Bearer ${state.settings.apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "http://localhost" },
+                        headers: { "Authorization": `Bearer ${state.settings.apiKey}`, "Content-Type": "application/json" },
                         body: JSON.stringify({
                             model: state.settings.model,
-                            messages: [
-                                { role: "system", content: systemInstruction },
-                                ...chat.messages.filter(m => m.content !== '...' && m.id !== aiMsg.id)
-                            ]
+                            messages: [{ role: "system", content: systemInstruction }, ...chat.messages.filter(m => m.content !== '...' && m.id !== aiMsg.id)]
                         })
                     });
-                    
-                    if(!res.ok) throw new Error("API Error");
                     const data = await res.json();
                     const reply = data.choices[0].message.content;
                     aiMsg.content = reply; renderMessages(); speak(reply); saveState(); renderChatList();
-                } catch (e) { aiMsg.content = "Error: " + e.message; renderMessages(); }
+                } catch (e) { aiMsg.content = "Error: API Key check karein."; renderMessages(); }
+            }
+
+            function updateWelcomeVisibility(show) {
+                if (show) els.welcomeMsg.classList.remove('hidden');
+                else els.welcomeMsg.classList.add('hidden');
             }
 
             function updateModeUI(isPartner) {
@@ -182,7 +194,7 @@
                     els.modeBadge.innerText = "Partner Mode ❤️";
                     els.modeBadge.className = "text-[10px] font-bold px-3 py-0.5 bg-pink-100 text-pink-700 rounded-full dark:bg-pink-900 dark:text-pink-300 tracking-widest uppercase mb-0.5";
                 } else {
-                    els.modeBadge.innerText = "Standard Mode";
+                    els.modeBadge.innerText = "Assistant Mode";
                     els.modeBadge.className = "text-[10px] font-bold px-3 py-0.5 bg-gray-200 text-gray-600 rounded-full dark:bg-slate-800 dark:text-gray-300 tracking-widest uppercase mb-0.5";
                 }
             }
@@ -193,11 +205,15 @@
                 state.currentChatId = id;
                 state.isAuthenticated = false; updateModeUI(false);
                 renderChatList(); renderMessages();
+                updateWelcomeVisibility(true);
                 if(window.innerWidth < 768) els.sidebar.classList.add('-translate-x-full');
             }
 
             function selectChat(id) { 
-                state.currentChatId = id; renderChatList(); renderMessages();
+                state.currentChatId = id; 
+                const chat = state.chats.find(c => c.id === id);
+                updateWelcomeVisibility(!chat || chat.messages.length === 0);
+                renderChatList(); renderMessages();
                 if(window.innerWidth < 768) els.sidebar.classList.add('-translate-x-full'); 
             }
 
@@ -210,8 +226,8 @@
                     d.innerHTML = `
                         <div onclick="app.selectChat('${c.id}')" class="truncate text-sm flex-1 font-medium">${c.title}</div>
                         <div class="hidden group-hover:flex gap-2">
-                            <button onclick="event.stopPropagation(); app.renameChat('${c.id}')" class="text-xs opacity-70 hover:opacity-100"><i class="fas fa-edit"></i></button>
-                            <button onclick="event.stopPropagation(); app.deleteChat('${c.id}')" class="text-xs opacity-70 hover:opacity-100"><i class="fas fa-trash"></i></button>
+                            <button onclick="event.stopPropagation(); app.renameChat('${c.id}')" class="hover:text-yellow-400 transition-colors"><i class="fas fa-edit text-xs"></i></button>
+                            <button onclick="event.stopPropagation(); app.deleteChat('${c.id}')" class="hover:text-red-400 transition-colors"><i class="fas fa-trash text-xs"></i></button>
                         </div>`;
                     els.chatList.appendChild(d);
                 });
@@ -219,24 +235,29 @@
 
             function renderMessages() {
                 const chat = state.chats.find(c => c.id === state.currentChatId);
+                const msgsOnly = chat ? chat.messages : [];
+                
+                // Keep welcome msg or remove it
+                const welcomeClone = els.welcomeMsg.cloneNode(true);
                 els.messagesContainer.innerHTML = '';
-                if (!chat) return;
-                chat.messages.forEach(m => {
+                els.messagesContainer.appendChild(welcomeClone);
+                
+                msgsOnly.forEach(m => {
                     const isUser = m.role === 'user';
                     const d = document.createElement('div');
-                    d.className = `flex ${isUser ? 'justify-end' : 'justify-start'} message-appear`;
-                    d.innerHTML = `<div class="max-w-[85%] p-3 md:p-4 rounded-2xl ${isUser ? 'bg-blue-600 text-white shadow-md rounded-br-none' : 'bg-white dark:bg-slate-800 dark:text-gray-200 shadow-sm border dark:border-slate-700 rounded-bl-none'} prose text-sm md:text-base">${marked.parse(m.content)}</div>`;
+                    d.className = `flex ${isUser ? 'justify-end' : 'justify-start'} message-appear w-full`;
+                    d.innerHTML = `<div class="max-w-[85%] p-3 md:p-4 rounded-2xl ${isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 dark:text-gray-200 border dark:border-slate-700 rounded-bl-none'} prose text-sm md:text-base shadow-sm">${marked.parse(m.content)}</div>`;
                     els.messagesContainer.appendChild(d);
                 });
                 els.messagesContainer.scrollTop = els.messagesContainer.scrollHeight;
             }
 
-            function saveState() { localStorage.setItem('sara_clean_state', JSON.stringify({ settings: state.settings, chats: state.chats, isDarkMode: state.isDarkMode })); }
+            function saveState() { localStorage.setItem('sara_v4_state', JSON.stringify({ settings: state.settings, chats: state.chats, isDarkMode: state.isDarkMode })); }
 
             return {
                 init, sendMessage, createNewChat, selectChat,
-                deleteChat: (id) => { if(confirm("Delete this chat?")) { state.chats = state.chats.filter(c => c.id !== id); if(state.currentChatId === id) createNewChat(); else { saveState(); renderChatList(); } } },
-                renameChat: (id) => { const n = prompt("Rename:"); if(n) { state.chats.find(c => c.id === id).title = n; saveState(); renderChatList(); } },
+                deleteChat: (id) => { if(confirm("Delete this chat?")) { state.chats = state.chats.filter(c => c.id !== id); if(state.currentChatId === id) { state.currentChatId = null; updateWelcomeVisibility(true); } saveState(); renderChatList(); renderMessages(); } },
+                renameChat: (id) => { const n = prompt("New name?", state.chats.find(c => c.id === id).title); if(n) { state.chats.find(c => c.id === id).title = n; saveState(); renderChatList(); } },
                 toggleDarkMode: () => { state.isDarkMode = !state.isDarkMode; document.documentElement.classList.toggle('dark'); saveState(); },
                 toggleSidebar: () => { els.sidebar.classList.toggle('-translate-x-full'); els.overlay.classList.toggle('hidden'); },
                 openSettings: () => { els.settings.key.value = state.settings.apiKey; els.settings.model.value = state.settings.model; els.settings.helper.value = state.settings.helperPrompt; els.settings.partner.value = state.settings.partnerPrompt; document.getElementById('settings-modal').classList.remove('hidden'); },
